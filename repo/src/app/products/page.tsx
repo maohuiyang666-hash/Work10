@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useMemo, Suspense, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { products, categories } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import { FilterIcon, ChevronDownIcon, XIcon } from '@/components/icons';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const categoryParam = searchParams.get('category');
   const searchQuery = searchParams.get('search');
   const filterParam = searchParams.get('filter');
@@ -16,6 +17,10 @@ function ProductsContent() {
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [sortBy, setSortBy] = useState<string>('default');
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    setSelectedCategory(categoryParam || '');
+  }, [categoryParam]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -71,9 +76,21 @@ function ProductsContent() {
     setSelectedCategory('');
     setPriceRange({ min: '', max: '' });
     setSortBy('default');
+    
+    if (searchQuery || filterParam || categoryParam) {
+      router.push('/products');
+    }
   };
 
-  const hasActiveFilters = selectedCategory || priceRange.min || priceRange.max || sortBy !== 'default';
+  const hasActiveFilters = Boolean(
+    selectedCategory || 
+    priceRange.min || 
+    priceRange.max || 
+    sortBy !== 'default' || 
+    searchQuery || 
+    filterParam || 
+    categoryParam
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
 import { 
   ShoppingCartIcon, 
@@ -17,7 +18,14 @@ import {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchParams = useSearchParams();
+  const searchParam = searchParams.get('search');
+  const router = useRouter();
   const { getCartCount, getFavoritesCount } = useShop();
+
+  useEffect(() => {
+    setSearchQuery(searchParam || '');
+  }, [searchParam]);
 
   const cartCount = getCartCount();
   const favoritesCount = getFavoritesCount();
@@ -25,7 +33,9 @@ export default function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      window.location.href = `/products?search=${encodeURIComponent(searchQuery)}`;
+      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      router.push('/products');
     }
   };
 

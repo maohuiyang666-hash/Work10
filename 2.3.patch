@@ -1,0 +1,95 @@
+diff --git a/repo/src/app/products/page.tsx b/repo/src/app/products/page.tsx
+index 820888e..7515dac 100644
+--- a/repo/src/app/products/page.tsx
++++ b/repo/src/app/products/page.tsx
+@@ -1,13 +1,14 @@
+ 'use client';
+ 
+-import { useState, useMemo, Suspense } from 'react';
+-import { useSearchParams } from 'next/navigation';
++import { useState, useMemo, Suspense, useEffect } from 'react';
++import { useSearchParams, useRouter } from 'next/navigation';
+ import { products, categories } from '@/data/products';
+ import ProductCard from '@/components/ProductCard';
+ import { FilterIcon, ChevronDownIcon, XIcon } from '@/components/icons';
+ 
+ function ProductsContent() {
+   const searchParams = useSearchParams();
++  const router = useRouter();
+   const categoryParam = searchParams.get('category');
+   const searchQuery = searchParams.get('search');
+   const filterParam = searchParams.get('filter');
+@@ -17,6 +18,10 @@ function ProductsContent() {
+   const [sortBy, setSortBy] = useState<string>('default');
+   const [showFilters, setShowFilters] = useState(false);
+ 
++  useEffect(() => {
++    setSelectedCategory(categoryParam || '');
++  }, [categoryParam]);
++
+   const filteredProducts = useMemo(() => {
+     let result = [...products];
+ 
+@@ -71,9 +76,21 @@ function ProductsContent() {
+     setSelectedCategory('');
+     setPriceRange({ min: '', max: '' });
+     setSortBy('default');
++    
++    if (searchQuery || filterParam || categoryParam) {
++      router.push('/products');
++    }
+   };
+ 
+-  const hasActiveFilters = selectedCategory || priceRange.min || priceRange.max || sortBy !== 'default';
++  const hasActiveFilters = Boolean(
++    selectedCategory || 
++    priceRange.min || 
++    priceRange.max || 
++    sortBy !== 'default' || 
++    searchQuery || 
++    filterParam || 
++    categoryParam
++  );
+ 
+   return (
+     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+diff --git a/repo/src/components/Header.tsx b/repo/src/components/Header.tsx
+index bbdcfaf..2f8d6a6 100644
+--- a/repo/src/components/Header.tsx
++++ b/repo/src/components/Header.tsx
+@@ -1,7 +1,8 @@
+ 'use client';
+ 
+ import Link from 'next/link';
+-import { useState } from 'react';
++import { useState, useEffect } from 'react';
++import { useSearchParams, useRouter } from 'next/navigation';
+ import { useShop } from '@/context/ShopContext';
+ import { 
+   ShoppingCartIcon, 
+@@ -17,15 +18,24 @@ import {
+ export default function Header() {
+   const [isMenuOpen, setIsMenuOpen] = useState(false);
+   const [searchQuery, setSearchQuery] = useState('');
++  const searchParams = useSearchParams();
++  const searchParam = searchParams.get('search');
++  const router = useRouter();
+   const { getCartCount, getFavoritesCount } = useShop();
+ 
++  useEffect(() => {
++    setSearchQuery(searchParam || '');
++  }, [searchParam]);
++
+   const cartCount = getCartCount();
+   const favoritesCount = getFavoritesCount();
+ 
+   const handleSearch = (e: React.FormEvent) => {
+     e.preventDefault();
+     if (searchQuery.trim()) {
+-      window.location.href = `/products?search=${encodeURIComponent(searchQuery)}`;
++      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
++    } else {
++      router.push('/products');
+     }
+   };
+ 
