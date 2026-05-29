@@ -1,54 +1,77 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState, Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { products, categories } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import { FilterIcon, ChevronDownIcon, XIcon } from '@/components/icons';
 
 function ProductsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const categoryParam = searchParams.get('category');
-  const searchQuery = searchParams.get('search');
-  const filterParam = searchParams.get('filter');
+  const categoryParam = searchParams.get('category') || '';
+  const searchQuery = searchParams.get('search') || '';
+  const filterParam = searchParams.get('filter') || '';
 
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || '');
+  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [sortBy, setSortBy] = useState<string>('default');
   const [showFilters, setShowFilters] = useState(false);
 
+  useEffect(() => {
+    setSelectedCategory(categoryParam);
+  }, [categoryParam]);
+
+  const updateUrlParams = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+        return;
+      }
+
+      params.delete(key);
+    });
+
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    updateUrlParams({ category: category || null });
+  };
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(p => 
+      result = result.filter(p =>
         p.name.toLowerCase().includes(query) ||
         p.description.toLowerCase().includes(query) ||
         p.tags.some(tag => tag.toLowerCase().includes(query))
       );
     }
 
-    // Filter by category
     if (selectedCategory) {
       result = result.filter(p => p.category === selectedCategory);
     }
 
-    // Filter by new products
     if (filterParam === 'new') {
       result = result.filter(p => p.isNew);
     }
 
-    // Filter by price range
     if (priceRange.min) {
       result = result.filter(p => p.price >= parseInt(priceRange.min));
     }
+
     if (priceRange.max) {
       result = result.filter(p => p.price <= parseInt(priceRange.max));
     }
 
-    // Sort
     switch (sortBy) {
       case 'price-asc':
         result.sort((a, b) => a.price - b.price);
@@ -71,9 +94,13 @@ function ProductsContent() {
     setSelectedCategory('');
     setPriceRange({ min: '', max: '' });
     setSortBy('default');
+    setShowFilters(false);
+    router.replace(pathname, { scroll: false });
   };
 
-  const hasActiveFilters = selectedCategory || priceRange.min || priceRange.max || sortBy !== 'default';
+  const hasActiveFilters = Boolean(
+    searchQuery || filterParam || selectedCategory || priceRange.min || priceRange.max || sortBy !== 'default'
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -114,7 +141,7 @@ function ProductsContent() {
                     type="radio"
                     name="category"
                     checked={!selectedCategory}
-                    onChange={() => setSelectedCategory('')}
+                    onChange={() => handleCategoryChange('')}
                     className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                   />
                   <span className="ml-2 text-gray-700">全部分类</span>
@@ -125,7 +152,7 @@ function ProductsContent() {
                       type="radio"
                       name="category"
                       checked={selectedCategory === category.id}
-                      onChange={() => setSelectedCategory(category.id)}
+                      onChange={() => handleCategoryChange(category.id)}
                       className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                     />
                     <span className="ml-2 text-gray-700">{category.name}</span>

@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useShop } from '@/context/ShopContext';
-import { 
-  ShoppingCartIcon, 
-  HeartIcon, 
-  SearchIcon, 
-  MenuIcon, 
+import {
+  ShoppingCartIcon,
+  HeartIcon,
+  SearchIcon,
+  MenuIcon,
   XIcon,
   AdminIcon,
   HomeIcon,
@@ -15,6 +16,9 @@ import {
 } from './icons';
 
 export default function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { getCartCount, getFavoritesCount } = useShop();
@@ -22,11 +26,21 @@ export default function Header() {
   const cartCount = getCartCount();
   const favoritesCount = getFavoritesCount();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/products?search=${encodeURIComponent(searchQuery)}`;
+  useEffect(() => {
+    if (pathname === '/products') {
+      setSearchQuery(searchParams.get('search') || '');
+      return;
     }
+
+    setSearchQuery('');
+  }, [pathname, searchParams]);
+
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmedQuery = searchQuery.trim();
+
+    router.push(trimmedQuery ? `/products?search=${encodeURIComponent(trimmedQuery)}` : '/products');
+    setIsMenuOpen(false);
   };
 
   return (
